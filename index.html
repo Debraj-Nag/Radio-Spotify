@@ -478,25 +478,56 @@
     return card;
   }
 
-  function playStation(station) {
-    audioPlayer.src = station.url_resolved;
+  async function attemptPlayback(station) {
+    const proxyStreams = [
+      station.url_resolved,
+      station.url,
+    ].filter(Boolean);
 
-    audioPlayer.load();
+    let played = false;
 
-    audioPlayer.play()
-      .then(() => {
+    for (const stream of proxyStreams) {
+      try {
+        audioPlayer.src = stream;
+        audioPlayer.load();
+
+        await audioPlayer.play();
+
+        played = true;
         isPlaying = true;
+
         playerBar.style.display = 'flex';
 
         nowPlaying.innerText = station.name;
         stationPlaying.innerText = `${station.country || 'Unknown Country'} • ${station.tags || 'Live Radio Stream'}`;
 
         toggleBtn.innerText = 'Pause';
-      })
-      .catch(err => {
-        console.error(err);
-        alert('Unable to play this station. Some streams may block browsers.');
-      });
+
+        break;
+      } catch (err) {
+        console.log('Playback failed for stream:', stream);
+      }
+    }
+
+    if (!played) {
+      playerBar.style.display = 'flex';
+
+      nowPlaying.innerText = 'Playback Unavailable';
+      stationPlaying.innerText = 'This stream blocks browser playback. Try another station.';
+
+      toggleBtn.innerText = 'Unavailable';
+      toggleBtn.disabled = true;
+    } else {
+      toggleBtn.disabled = false;
+    }
+  }
+
+  function playStation(station) {
+    audioPlayer.src = station.url_resolved;
+
+    audioPlayer.load();
+
+    attemptPlayback(station);
   }
 
   function togglePlay() {
@@ -523,7 +554,7 @@
   }
 
   audioPlayer.addEventListener('error', () => {
-    alert('This radio stream is currently unavailable or blocked by the station. Try another one.');
+    console.log('Stream unavailable or blocked by browser');
   });
 
   audioPlayer.addEventListener('ended', () => {
