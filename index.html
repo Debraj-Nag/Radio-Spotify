@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
+
 *{
 margin:0;
 padding:0;
@@ -223,12 +224,6 @@ transition:0.2s;
 transform:scale(1.06);
 }
 
-iframe{
-width:0;
-height:0;
-border:none;
-}
-
 .loading{
 display:flex;
 justify-content:center;
@@ -261,6 +256,7 @@ overflow:auto;
 }
 
 }
+
 </style>
 </head>
 
@@ -285,6 +281,7 @@ overflow:auto;
 <div class="main">
 
 <div class="topbar">
+
 <input
 type="text"
 id="searchInput"
@@ -295,15 +292,18 @@ placeholder="Search songs, artists, albums..."
 <button class="search-btn" onclick="searchSongs()">
 Search
 </button>
+
 </div>
 
 <div class="hero">
+
 <h1>Play Music Instantly</h1>
 
 <p>
 Radiofy is a Spotify-inspired music streaming interface with instant song discovery,
 beautiful album artwork, artist search, and embedded playback.
 </p>
+
 </div>
 
 <div class="status" id="status"></div>
@@ -338,14 +338,12 @@ alt="cover"
 
 </div>
 
-<div id="youtubeContainer"></div>
-
-<script>
+<audio id="audioPlayer" controls style="display:none"></audio>
+  <script>
 
 const results = document.getElementById('results');
 const statusText = document.getElementById('status');
-
-let currentPlayer = null;
+const audioPlayer = document.getElementById('audioPlayer');
 
 async function searchSongs(){
 
@@ -425,72 +423,86 @@ statusText.innerText = 'Error loading songs';
 
 }
 
-function playSong(song){
+async function playSong(song){
 
 const artwork = song.artworkUrl100
 ? song.artworkUrl100.replace('100x100','500x500')
 : 'https://placehold.co/500x500/png';
 
 document.getElementById('playerTitle').innerText = song.trackName;
+
 document.getElementById('playerArtist').innerText = song.artistName;
+
 document.getElementById('playerImage').src = artwork;
 
-const searchQuery = encodeURIComponent(
-`${song.trackName} ${song.artistName}`
-);
+if(song.previewUrl){
 
-const embed = `
-<iframe
-id="ytplayer"
-width="0"
-height="0"
-src="https://www.youtube.com/embed/videoseries?listType=search&list=${searchQuery}&autoplay=1&enablejsapi=1"
-allow="autoplay; encrypted-media"
-allowfullscreen>
-</iframe>
-`;
+try{
 
-document.getElementById('youtubeContainer').innerHTML = embed;
+audioPlayer.pause();
 
-currentPlayer = document.getElementById('ytplayer');
+audioPlayer.src = song.previewUrl;
+
+audioPlayer.load();
+
+await audioPlayer.play();
+
+statusText.innerText = `Now Playing: ${song.trackName}`;
+
+}catch(error){
+
+console.error(error);
+
+statusText.innerText = 'Playback failed. Browser blocked autoplay.';
+
+}
+
+}else{
+
+statusText.innerText = 'Preview unavailable for this song.';
+
+}
 
 }
 
 function pauseTrack(){
 
-if(currentPlayer){
-
-currentPlayer.contentWindow.postMessage(
-'{"event":"command","func":"pauseVideo","args":""}',
-'*'
-);
-
-}
+audioPlayer.pause();
 
 }
 
 function resumeTrack(){
 
-if(currentPlayer){
+if(audioPlayer.src){
 
-currentPlayer.contentWindow.postMessage(
-'{"event":"command","func":"playVideo","args":""}',
-'*'
-);
+audioPlayer.play();
 
 }
 
 }
+
+audioPlayer.addEventListener('ended',()=>{
+
+statusText.innerText = 'Song ended';
+
+});
+
+audioPlayer.addEventListener('error',()=>{
+
+statusText.innerText = 'Audio playback error';
+
+});
 
 document.getElementById('searchInput').addEventListener('keypress',(e)=>{
 
 if(e.key==='Enter'){
+
 searchSongs();
+
 }
 
 });
 
 </script>
-
-</body>
+  </body>
 </html>
