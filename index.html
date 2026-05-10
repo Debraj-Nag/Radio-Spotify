@@ -233,6 +233,12 @@ font-size:1.1rem;
 color:#1db954;
 }
 
+iframe{
+width:0;
+height:0;
+border:none;
+}
+
 @media(max-width:900px){
 
 .sidebar{
@@ -338,12 +344,12 @@ alt="cover"
 
 </div>
 
-<audio id="audioPlayer" controls style="display:none"></audio>
-  <script>
+<div id="youtubePlayerContainer"></div>
+
+<script>
 
 const results = document.getElementById('results');
 const statusText = document.getElementById('status');
-const audioPlayer = document.getElementById('audioPlayer');
 
 async function searchSongs(){
 
@@ -415,15 +421,13 @@ results.appendChild(card);
 
 console.error(error);
 
-results.innerHTML = '';
-
-statusText.innerText = 'Error loading songs';
+results.innerText = 'Error loading songs';
 
 }
 
 }
 
-async function playSong(song){
+function playSong(song){
 
 const artwork = song.artworkUrl100
 ? song.artworkUrl100.replace('100x100','500x500')
@@ -435,74 +439,61 @@ document.getElementById('playerArtist').innerText = song.artistName;
 
 document.getElementById('playerImage').src = artwork;
 
-if(song.previewUrl){
+const searchQuery = encodeURIComponent(
+`${song.trackName} ${song.artistName}`
+);
 
-try{
-
-audioPlayer.pause();
-
-audioPlayer.src = song.previewUrl;
-
-audioPlayer.load();
-
-await audioPlayer.play();
+document.getElementById('youtubePlayerContainer').innerHTML = `
+<iframe
+src="https://www.youtube.com/embed/videoseries?listType=search&list=${searchQuery}&autoplay=1"
+allow="autoplay; encrypted-media"
+allowfullscreen>
+</iframe>
+`;
 
 statusText.innerText = `Now Playing: ${song.trackName}`;
-
-}catch(error){
-
-console.error(error);
-
-statusText.innerText = 'Playback failed. Browser blocked autoplay.';
-
-}
-
-}else{
-
-statusText.innerText = 'Preview unavailable for this song.';
-
-}
 
 }
 
 function pauseTrack(){
 
-audioPlayer.pause();
+const iframe = document.querySelector('iframe');
+
+if(iframe){
+
+iframe.contentWindow.postMessage(
+'{"event":"command","func":"pauseVideo","args":""}',
+'*'
+);
+
+}
 
 }
 
 function resumeTrack(){
 
-if(audioPlayer.src){
+const iframe = document.querySelector('iframe');
 
-audioPlayer.play();
+if(iframe){
+
+iframe.contentWindow.postMessage(
+'{"event":"command","func":"playVideo","args":""}',
+'*'
+);
 
 }
 
 }
-
-audioPlayer.addEventListener('ended',()=>{
-
-statusText.innerText = 'Song ended';
-
-});
-
-audioPlayer.addEventListener('error',()=>{
-
-statusText.innerText = 'Audio playback error';
-
-});
 
 document.getElementById('searchInput').addEventListener('keypress',(e)=>{
 
-if(e.key==='Enter'){
-
+if(e.key === 'Enter'){
 searchSongs();
-
 }
 
 });
 
 </script>
-  </body>
+
+</body>
 </html>
